@@ -1,15 +1,29 @@
+/**
+ * Full Court Shots is a shot viewer using data from the Dribbble api <http://dribbble.com/api>
+ * Data is retrieved using the jQuery plugin Jribbble <http://tylergaw.com/lab/jribbble>
+ *
+ * Author: Tyler Gaw <http://tylergaw.com>
+ * copyright: Fuck if I know, I'm a web designer not a lawyer.
+ *
+ */
+
+// I use cookies to remember the list and player that the user was last viewing. 
+// I'm thoughtful. I love Unicorns.
 var CookieMonster = {};
 
-// namespace
+// This is where the shit goes down like the Titanic.
 var FCS = function ()
 {
 	var internal = {
 		
 		// The available list types
-		listTypes: ['popular', 'everyone', 'debuts'],
+		listTypes: ['popular', 'everyone', 'debuts', 'players', 'followed'],
 		
 		// The current list being shown
 		list: 'everyone',
+		
+		// What player we are currently working with
+		player: 'tylergaw',
 		
 		// The page of shots that has been loaded
 		page: 0,
@@ -31,6 +45,7 @@ var FCS = function ()
 		
 		// Options that will be passed to the fancybox plugin
 		fancyboxOpts: {
+			'autoDimensions': false,
 			'titleShow': true,
 			'titlePosition': 'inside',
 			'centerOnScroll': true,
@@ -80,6 +95,7 @@ var FCS = function ()
 		internal.page = 0;
 		internal.totalPages = null;
 		internal.shots = [];
+		$.fancybox.close();
 		internal.container.html('');
 		internal.checkHash();
 		internal.requestShots();
@@ -90,13 +106,45 @@ var FCS = function ()
 	{
 		if (window.location.hash)
 		{
-			var hash = window.location.hash.replace('#', '');
-			if ($.inArray(hash, internal.listTypes) !== -1)
+			var hash   = window.location.hash.replace('#', ''),
+				parts  = [],
+				list   = null,
+				player = null;
+			
+			// We need to check for any "/" chars in the hash.
+			// Those indicate that we are looking for shots that
+			// require a piece of user inputted data
+			if (hash.indexOf('/') !== -1)
 			{
-				internal.list = internal.listTypes[$.inArray(hash, internal.listTypes)];
+				parts = hash.split('/');
+				list = parts[0];
+				
+				switch (parts.length)
+				{
+				case 2:
+					internal.player = parts[1];
+					break;
+				case 3:
+					internal.player = parts[2];
+				}
+								
+				internal.createInput(list, internal.player);
+			}
+			else
+			{
+				list = hash;
+				
+				// Remove any leftover input
+				$('#list-control form').remove();
+			}
+			
+			// Now check that that list is valid
+			if ($.inArray(list, internal.listTypes) !== -1)
+			{
+				internal.list = internal.listTypes[$.inArray(list, internal.listTypes)];
 				
 				// Select the correct item in the list
-				$('#list-select option[value="' + hash + '"]').attr('selected', 'selected');
+				$('#list-select option[value="' + list + '"]').attr('selected', 'selected');
 			}
 		}
 		else
@@ -108,7 +156,8 @@ var FCS = function ()
 	// See if they've been here before and changed the list
 	internal.checkCookie = function ()
 	{
-		var list;
+		var list,
+			player;
 		
 		if (CookieMonster.get('fcs.list'))
 		{
@@ -119,6 +168,19 @@ var FCS = function ()
 				
 				// Select the correct item in the list
 				$('#list-select option[value="' + list + '"]').attr('selected', 'selected');
+			}
+			
+			// Retrieve any stored player ID
+			if (CookieMonster.get('fcs.player'))
+			{
+				player = CookieMonster.get('fcs.player');
+				internal.player = player;
+			}
+			
+			// If the stored list is one that requires an input, create it now
+			if (list === 'followed' || list === 'players')
+			{
+				internal.createInput(list, player);
 			}
 		}
 	};
@@ -135,12 +197,26 @@ var FCS = function ()
 		);
 		
 		$('#list-select').change(
-			function ()
+			function (e)
 			{
-				window.location.hash = $(this).val();
-				CookieMonster.set('fcs.list', $(this).val(), 30);
+				var value  = $(this).val(),
+					option = $(this).find('option[value=' + value + ']');
+				
+				if (option.hasClass('needs-input'))
+				{
+					internal.createInput(value);
+				}
+				else
+				{
+					$('#list-control form').remove();
+					window.location.hash = value;
+					CookieMonster.set('fcs.list', value, 30);
+				}
 			}
 		);
+		
+		// for any user-inputted data we'll grab it during a form submission
+		$('#list-control form').live('submit', internal.submitHandler);
 		
 		$(document).scroll(function ()
 		{
@@ -148,15 +224,75 @@ var FCS = function ()
 		});
 	};
 	
+	// Create a text input for the provided type
+	// @param STRING list - The 
+	// @param OPTIONAL STRING value - The value of the created input
+	internal.createInput = function (list, value)
+	{
+		var input = null,
+			html  = [],
+			qualifier = '';
+		
+		$('#list-control form').remove();
+		
+		if (list === 'followed')
+		{
+			qualifier = ' by ';
+		}
+		
+		html.push('<form action="#" method="GET">');
+		html.push(qualifier + '<input type="text" name="player" value="' + internal.player + '">');
+		html.push('<input type="hidden" name="list" value="' + list + '"></form>');
+		
+		$('#list-select').after(html.join(''));
+		
+		input = $('#list-control input:first');
+		
+		// Check for a sent value and set it
+		if (value)
+		{
+			input.val(value);
+		}
+		else if (internal.player)
+		{
+			input.val(internal.player);
+			input.closest('form').submit();
+		}
+	};
+	
+	// Handle the submission of any inputs that are needed for lists
+	internal.submitHandler = function ()
+	{
+		var player = $(this).find('input[name=player]').val(),
+			list   = $(this).find('input[name=list]').val();
+		
+		// NOTE: This is not so elegant. Hard-coded condition.
+		if (list === 'followed')
+		{
+			window.location.hash = list + '/by/' + player;
+		}
+		else
+		{
+			window.location.hash = list + '/' + player;
+		}
+		
+		CookieMonster.set('fcs.list', list, 30);
+		CookieMonster.set('fcs.player', player, 30);
+		return false;
+	};
+	
 	// Make a new request to the Dribbble API to retrieve the next page of shots
 	internal.requestShots = function ()
 	{
-		var requestCount = 0,
+		var method       = null,
+			identifier   = null,
+			requestCount = 0,
 			currentShots = [],
 		
 			makeRequest = function ()
 			{
-				var canMakeRequest = true;
+				var canMakeRequest = true,
+					requestTimeout = null;
 				
 				internal.page = internal.page += 1;
 				requestCount  = requestCount += 1;
@@ -171,13 +307,42 @@ var FCS = function ()
 					// display loader
 					internal.loader.show();
 					
-					$.jribbble.getShotsByList(internal.list, 
+					// Determine which Jribbble method to used based off the list
+					// and what identifier will be sent with the request
+					switch (internal.list)
+					{
+					case 'followed':
+						method     = 'getShotsThatPlayerFollows';
+						identifier = internal.player; 
+						break;
+					case 'players':
+						method     = 'getShotsByPlayerId';
+						identifier = internal.player;
+						break;
+					default:
+						method     = 'getShotsByList';
+						identifier = internal.list;
+					}
+					
+					$.jribbble[method](identifier, 
 						function (data)
 						{
+							var pagesAtATime = internal.pagesAtATime;
+							clearTimeout(requestTimeout);
+
 							// If we haven't set a total number of pages yet, do so
 							if (internal.totalPages === null)
 							{
 								internal.totalPages = data.pages;
+							}
+							
+							// We need to determine if the number of pages of data
+							// is greater than the pagesAtATime default we've set
+							// If it isn't we need to update the pagesAtATime to
+							// reflect the lower number
+							if (internal.totalPages < pagesAtATime)
+							{
+								pagesAtATime = internal.totalPages;
 							}
 
 							// Add the requested shots to our shots ARRAY
@@ -186,7 +351,7 @@ var FCS = function ()
 
 							// If we've made the number of requests we need to make
 							// at a time, continue on. If not, make another request
-							if (requestCount === internal.pagesAtATime)
+							if (requestCount === pagesAtATime)
 							{
 								internal.parseShots(currentShots);
 							}
@@ -197,6 +362,9 @@ var FCS = function ()
 						}, 
 						{page: internal.page, per_page: 30}
 					);
+					
+					// Create a timeout in case the request fails
+					requestTimeout = setTimeout(internal.requestTimeout, 10000);
 				}
 				else
 				{
@@ -208,6 +376,14 @@ var FCS = function ()
 		makeRequest();
 	};
 	
+	// If a request hangs, kill it! kill it with fire!!
+	internal.requestTimeout = function ()
+	{
+		internal.loader.hide();
+		window.stop();
+		alert('This Boss Hog just timed out.\nTry refreshing, or check any player name you might have put in.');
+	};
+	
 	// Build the html for each shot and append the set to the DOM
 	internal.parseShots = function (shots)
 	{	
@@ -216,21 +392,27 @@ var FCS = function ()
 		$.each(shots, 
 			function (i, shot)
 			{
-				var imgLoader = new Image(),
-					
-					alt = '<a href=' + shot.url + '>' + shot.title + '</a> by <a href=' + shot.player.url + '>' + shot.player.name + '</a>',
-					
-					item = $('<li />', {
-						'id': 'shot-' + shot.id,
-						html: $('<a />', {
-							'href': shot.image_url,
-							'rel': 'shot',
-							html: $('<img />', {
-								'src': shot.image_teaser_url,
-								'alt': alt
-							})
+				var playerUrlParts = shot.player.url.split('/'),
+					fcsPlayerUrl   = '#players/' + playerUrlParts[playerUrlParts.length - 1],
+					alt            = [],
+					item           = null;
+				
+				// Create the alt tag for use within fancy box
+				alt.push('<a href=' + shot.url + '>' + shot.title + '</a>');
+				alt.push('<br> by <strong>' + shot.player.name  + '</strong>:');
+				alt.push(' <a href=' + fcsPlayerUrl + '>Shots</a> | <a href=' + shot.player.url + '>Profile</a>');
+				
+				item = $('<li />', {
+					'id': 'shot-' + shot.id,
+					html: $('<a />', {
+						'href': shot.image_url,
+						'rel': 'shot',
+						html: $('<img />', {
+							'src': shot.image_teaser_url,
+							'alt': alt.join('')
 						})
-					}
+					})
+				}
 				);
 				
 				items.push(item);
@@ -245,10 +427,12 @@ var FCS = function ()
 		internal.loader.hide();
 	};
 	
-	// Returning this allows.. some technical term I don't know
+	// Mick Jagger says, "Start me up!"
 	this.init();
 };
 
+// Remember that thoughtfullness from above? Here's where I make it happen.
+// I remember because I actually listen to you. I'll even remember our anniversary AND your mother's birthday.
 CookieMonster = {
 	
 	// Create a new or update a current cookie
