@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>Full Court Shots | Dribbble shots in all their glory.</title>
+	<meta name="description" content="A way to view all the lastest and most popular bits of tasty Dribbble design goodness.">
+	<link rel="shortcut icon" href="favicon.ico"> 
+	<link rel="stylesheet" href="css/core.css">
+	<link rel="stylesheet" href="css/jquery.fancybox-1.3.1.css">
+</head>
+<body>
+	<ul id="controls">
+		
+		<li id="list-control">
+			<a>List</a>
+			<p class="control-content">
+				<select id="list-select">
+					<option value="everyone">Everyone</option>
+					<option value="popular">Popular</option>
+					<option value="debuts">Debuts</option>
+				</select>
+			</p>
+		</li>
+		<li id="info-control">
+			<a>Info</a>
+			<p class="control-content">
+				1. Follow <a href="http://twitter.com/thegaw">@thegaw</a> 2. Use <a href="http://tylergaw.com/lab/jribbble">Jribbble</a> 3. Profit!!!
+			</p>
+		</li>
+	</ul>
+	
+	<div id="loader">
+		<p>Loading shots...</p>
+	</div>
+	
+	<script src="js/lib/jquery/jquery-1.4.2.min.js"></script>
+	<script src="js/lib/jquery/jquery.endlessScroll-1.3.min.js"></script>
+	<script src="js/lib/jquery/jquery.fancybox-1.3.1.pack.js"></script>
+	<script src="js/lib/jquery/jquery.jribbble-0.10.0.min.js"></script>
+	<script src="js/fcs.js"></script>
+	
+	<script type="text/javascript">
+
+	  var _gaq = _gaq || [];
+	  _gaq.push(['_setAccount', 'UA-1104578-12']);
+	  _gaq.push(['_trackPageview']);
+
+	  (function() {
+	    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+	    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+	    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+	  })();
+
+	</script>
+	
+</body>
+</html>
