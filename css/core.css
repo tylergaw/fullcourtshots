@@ -222,7 +222,56 @@ body
 		width: 150px;
 	}
 
+/*- Error pages --------------------------------------------------------------------------------------*/
+
+.error-page
+{
+	color: #f3f3f3;
+	font-size: 3.5em;
+	margin: 0 auto;
+	text-align: center;
+	width: 830px;
+}
+
+	.error-page h1
+	{
+		color: rgba(255, 255, 255, 0.12);
+		font-size: 12em;
+		line-height: 1em;
+		opacity: 0.28;
+		text-shadow: #000 -1px -2px 1px;
+		overflow: hidden;
+	}
+	
+	.error-page div
+	{
+		margin-bottom: -290px;
+		position: relative;
+		top: -290px;
+	}
+	
+	.error-page p
+	{
+		color: #A0A0A0;
+		font-size: 0.8em;
+		margin-top: 8px;
+	}
+	
+	.error-page a
+	{
+		color: #f36500;
+	}
+	
+		.error-page a:hover
+		{
+			text-decoration: underline;
+		}
+
 /*- Weird ass different size screens media queries ---------------------------------------------------*/
+
+@media screen and (max-width: 3119px) {
+	#shots { width: 2912px; }
+}
 
 @media screen and (max-width: 2911px) {
 	#shots { width: 2704px; }
